@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Network:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: network.yaml
+
+  Database:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: database.yaml
+      Parameters:
+        VpcId: !GetAtt Network.Outputs.VpcId
+        PrivateSubnet1Id: !GetAtt Network.Outputs.PrivateSubnet1Id
+        PrivateSubnet2Id: !GetAtt Network.Outputs.PrivateSubnet2Id
+
+  LoadBalancer:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: load-balancer.yaml
+      Parameters:
+        VpcId: !GetAtt Network.Outputs.VpcId
+        PublicSubnet1Id: !GetAtt Network.Outputs.PublicSubnet1Id
+        PublicSubnet2Id: !GetAtt Network.Outputs.PublicSubnet2Id
+
+  Ecs:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ecs.yaml
+      Parameters:
+        VpcId: !GetAtt Network.Outputs.VpcId
+        PrivateSubnet1Id: !GetAtt Network.Outputs.PrivateSubnet1Id
+        PrivateSubnet2Id: !GetAtt Network.Outputs.PrivateSubnet2Id
+        DatabaseEndpointAddress: !GetAtt Database.Outputs.EndpointAddress
+        LoadBalancerTargetGroupArn: !GetAtt LoadBalancer.Outputs.TargetGroupArn
+
+  FileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      FileSystemTags:
+        - Key: Name
+          Value: mattermost
+
+Outputs:
+  MattermostURL:
+    Value: !GetAtt LoadBalancer.Outputs.Dns

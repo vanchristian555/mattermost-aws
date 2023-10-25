@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  VpcId:
+    Type: String
+
+  PrivateSubnet1Id:
+    Type: String
+
+  PrivateSubnet2Id:
+    Type: String
+
+  DatabaseEndpointAddress:
+    Type: String
+
+  LoadBalancerTargetGroupArn:
+    Type: String
+
+Resources:
+  MattermostTaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Mattermost ECS task
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8065
+          ToPort: 8065
+          CidrIp: 10.0.0.0/16
+
+  MattermostCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      CapacityProviders:
+        - FARGATE
+      ClusterName: mattermost
+
+  MattermostTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: mattermost-task-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: logs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+
+  MattermostTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: 512
+      Memory: 1024
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Ref MattermostTaskExecutionRole
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Image: mattermost/mattermost-team-edition
+          Name: mattermost
+          Environment:
+            - Name: MM_SQLSETTINGS_DRIVERNAME
+              Value: postgres
+            - Name: MM_SQLSETTINGS_DATASOURCE
+              Value:
+                Fn::Sub:
+                  - postgres://${User}:${Password}@${DatabaseEndpointAddress}:5432/${DBName}?connect_timeout=10
+                  - User: mattermost
+                    Password: mattermost
+                    DBName: mattermost
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: mattermost
+              awslogs-region: us-east-1
+              awslogs-create-group: true
+              awslogs-stream-prefix: mattermost
+          PortMappings:
+            - AppProtocol: http
+              ContainerPort: 8065
+              HostPort: 8065
+
+  MattermostService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref MattermostCluster
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PrivateSubnet1Id
+            - !Ref PrivateSubnet2Id
+          SecurityGroups:
+            - !Ref MattermostTaskSecurityGroup
+      ServiceName: mattermost
+      TaskDefinition: !Ref MattermostTaskDefinition
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      LoadBalancers:
+        - ContainerName: mattermost
+          ContainerPort: 8065
+          TargetGroupArn: !Ref LoadBalancerTargetGroupArn
+
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: mattermost-ecs-auto-scaling
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [application-autoscaling.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
+
+  AutoScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 3
+      MinCapacity: 1
+      ResourceId: !Sub service/${MattermostCluster}/${MattermostService.Name}
+      RoleARN: !GetAtt AutoScalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  AutoScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: mattermost-ecs-auto-scaling
+      PolicyType: TargetTrackingScaling
+      ResourceId: !Ref MattermostService
+      ScalableDimension: ecs:service:DesiredCount
+      ScalingTargetId: !Ref AutoScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 50.0
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
