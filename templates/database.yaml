@@ -29,20 +29,32 @@ Resources:
         - !Ref PrivateSubnet1Id
         - !Ref PrivateSubnet2Id
 
-  Database:
-    Type: AWS::RDS::DBInstance
+  Cluster:
+    Type: AWS::RDS::DBCluster
     Properties:
-      AllocatedStorage: 20
-      DBInstanceClass: db.t3.small
-      Engine: postgres
-      EngineVersion: 15.4
+      DatabaseName: mattermost
+      DBClusterIdentifier: mattermost
+      DBSubnetGroupName: !Ref SubnetGroup
+      Engine: aurora-postgresql
+      EngineVersion: 14.9
+      Port: 5432
       MasterUsername: mattermost
       MasterUserPassword: mattermost
-      DBName: mattermost
-      VPCSecurityGroups:
+      ServerlessV2ScalingConfiguration:
+        MaxCapacity: 1.0
+        MinCapacity: 0.5
+      VpcSecurityGroupIds:
         - !Ref SecurityGroup
+
+  Instance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref Cluster
       DBSubnetGroupName: !Ref SubnetGroup
+      DBInstanceClass: db.serverless
+      Engine: aurora-postgresql
+      PubliclyAccessible: false
 
 Outputs:
   EndpointAddress:
-    Value: !GetAtt Database.Endpoint.Address
+    Value: !GetAtt Cluster.Endpoint.Address
