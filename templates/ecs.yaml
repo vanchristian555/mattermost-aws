@@ -16,6 +16,12 @@ Parameters:
     Type: String
 
 Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "mattermost/${AWS::StackName}"
+      RetentionInDays: 7
+
   MattermostTaskSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -83,10 +89,10 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref AWS::StackName
-              awslogs-region: us-east-1
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
               awslogs-create-group: true
-              awslogs-stream-prefix: mattermost
+              awslogs-stream-prefix: ecs
           PortMappings:
             - AppProtocol: http
               ContainerPort: 8065
