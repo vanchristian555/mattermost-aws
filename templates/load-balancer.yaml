@@ -25,7 +25,6 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       IpAddressType: ipv4
-      Name: mattermost
       Scheme: internet-facing
       SecurityGroups:
         - !Ref LoadBalancerSecurityGroup

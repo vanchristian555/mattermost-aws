@@ -33,7 +33,6 @@ Resources:
     Type: AWS::RDS::DBCluster
     Properties:
       DatabaseName: mattermost
-      DBClusterIdentifier: mattermost
       DBSubnetGroupName: !Ref SubnetGroup
       Engine: aurora-postgresql
       EngineVersion: 14.9

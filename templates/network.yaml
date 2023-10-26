@@ -6,7 +6,7 @@ Resources:
       CidrBlock: "10.0.0.0/16"
       Tags:
         - Key: Name
-          Value: mattermost
+          Value: !Ref AWS::StackName
 
   PublicSubnet1:
     Type: "AWS::EC2::Subnet"
@@ -19,7 +19,7 @@ Resources:
           - Fn::GetAZs: ""
       Tags:
         - Key: Name
-          Value: mattermost-public-1
+          Value: !Sub "${AWS::StackName}-public-1"
 
   PublicSubnet2:
     Type: "AWS::EC2::Subnet"
@@ -32,7 +32,7 @@ Resources:
           - Fn::GetAZs: ""
       Tags:
         - Key: Name
-          Value: mattermost-public-2
+          Value: !Sub "${AWS::StackName}-public-2"
 
   PrivateSubnet1:
     Type: "AWS::EC2::Subnet"
@@ -45,7 +45,7 @@ Resources:
           - Fn::GetAZs: ""
       Tags:
         - Key: Name
-          Value: mattermost-private-1
+          Value: !Sub "${AWS::StackName}-private-1"
 
   PrivateSubnet2:
     Type: "AWS::EC2::Subnet"
@@ -58,7 +58,7 @@ Resources:
           - Fn::GetAZs: ""
       Tags:
         - Key: Name
-          Value: mattermost-private-2
+          Value: !Sub "${AWS::StackName}-private-2"
 
   InternetGateway:
     Type: "AWS::EC2::InternetGateway"
