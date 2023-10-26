@@ -41,6 +41,10 @@ Resources:
       TargetType: ip
       VpcId: !Ref VpcId
       HealthCheckPath: /api/v4/system/ping
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
 
   LoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
