@@ -23,6 +23,11 @@ Resources:
         PublicSubnet1Id: !GetAtt Network.Outputs.PublicSubnet1Id
         PublicSubnet2Id: !GetAtt Network.Outputs.PublicSubnet2Id
 
+  Monitoring:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: monitoring.yaml
+
   Ecs:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -33,6 +38,8 @@ Resources:
         PrivateSubnet2Id: !GetAtt Network.Outputs.PrivateSubnet2Id
         DatabaseEndpointAddress: !GetAtt Database.Outputs.EndpointAddress
         LoadBalancerTargetGroupArn: !GetAtt LoadBalancer.Outputs.TargetGroupArn
+        LogGroupName: !GetAtt Monitoring.Outputs.LogGroupName
+        AlarmTopicArn: !GetAtt Monitoring.Outputs.AlarmTopicArn
 
   FileSystem:
     Type: AWS::EFS::FileSystem

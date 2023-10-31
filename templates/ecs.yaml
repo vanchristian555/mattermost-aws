@@ -15,13 +15,13 @@ Parameters:
   LoadBalancerTargetGroupArn:
     Type: String
 
-Resources:
-  LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "mattermost/${AWS::StackName}"
-      RetentionInDays: 7
+  LogGroupName:
+    Type: String
 
+  AlarmTopicArn:
+    Type: String
+
+Resources:
   MattermostTaskSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -89,7 +89,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref LogGroup
+              awslogs-group: !Ref LogGroupName
               awslogs-region: !Ref AWS::Region
               awslogs-create-group: true
               awslogs-stream-prefix: ecs
@@ -156,3 +156,22 @@ Resources:
         TargetValue: 50.0
         PredefinedMetricSpecification:
           PredefinedMetricType: ECSServiceAverageCPUUtilization
+
+  CPUUsageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref AlarmTopicArn
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 60
+      Threshold: 50
+      TreatMissingData: ignore
+      Statistic: Average
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref MattermostCluster
+        - Name: ServiceName
+          Value: !GetAtt MattermostService.Name
