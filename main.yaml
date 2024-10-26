@@ -3,12 +3,12 @@ Resources:
   Network:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: network.yaml
+      TemplateURL: stacks/network.yaml
 
   Database:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: database.yaml
+      TemplateURL: stacks/database.yaml
       Parameters:
         VpcId: !GetAtt Network.Outputs.VpcId
         PrivateSubnet1Id: !GetAtt Network.Outputs.PrivateSubnet1Id
@@ -17,7 +17,7 @@ Resources:
   LoadBalancer:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: load-balancer.yaml
+      TemplateURL: stacks/load-balancer.yaml
       Parameters:
         VpcId: !GetAtt Network.Outputs.VpcId
         PublicSubnet1Id: !GetAtt Network.Outputs.PublicSubnet1Id
@@ -26,12 +26,12 @@ Resources:
   Monitoring:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: monitoring.yaml
+      TemplateURL: stacks/monitoring.yaml
 
   Ecs:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ecs.yaml
+      TemplateURL: stacks/ecs.yaml
       Parameters:
         VpcId: !GetAtt Network.Outputs.VpcId
         PrivateSubnet1Id: !GetAtt Network.Outputs.PrivateSubnet1Id
