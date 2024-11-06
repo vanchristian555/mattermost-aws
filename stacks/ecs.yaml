@@ -143,7 +143,7 @@ Resources:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
       MaxCapacity: 3
-      MinCapacity: 1
+      MinCapacity: 2
       ResourceId: !Sub service/${MattermostCluster}/${MattermostService.Name}
       RoleARN: !GetAtt AutoScalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount
